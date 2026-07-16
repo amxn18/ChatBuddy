@@ -1,2 +1,18 @@
+# Python
+__pycache__/
+*.pyc
+
+# Environment
 .env
-__pycache__/**/*
+.venv/
+
+# SQLite
+*.db
+*.db-shm
+*.db-wal
+
+# Streamlit
+.streamlit/
+
+# OS
+.DS_Store

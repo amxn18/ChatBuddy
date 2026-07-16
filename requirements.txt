@@ -1,8 +1,12 @@
-streamlit
+streamlit>=1.40.0
+
 langgraph
+langgraph-checkpoint-sqlite
+
 langchain
 langchain-core
-langchain-openai
-langchain-community
-langgraph-checkpoint-sqlite
+langchain-huggingface
+
+huggingface-hub
+
 python-dotenv

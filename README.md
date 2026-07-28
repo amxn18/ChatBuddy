@@ -10,14 +10,15 @@ The primary goal of this version was to understand how **LangGraph Persistence**
 
 ## Features
 
-- 💬 Multi-thread conversations
-- 💾 Persistent chat history using SQLite
-- 🔄 Resume previous conversations
-- 📌 Automatic checkpoint management using LangGraph
-- ⚡ Streaming LLM responses
-- 📝 Dynamic chat titles
-- 🎨 Streamlit-based chat interface
-- 🧵 Thread management using LangGraph Thread IDs
+- Multi-thread conversations
+- Persistent chat history using SQLite
+- Resume previous conversations
+- Automatic checkpoint management using LangGraph
+- Streaming LLM responses
+- Dynamic chat titles
+- Streamlit-based chat interface
+- Thread management using LangGraph Thread IDs
+- LangSmith Tracing & Monitoring (Thread Specific)
 
 ---
 
@@ -283,4 +284,4 @@ Rather than building everything at once, I evolved the chatbot across multiple v
 
 If you found this project useful, feel free to explore the repository and share your feedback.
 
-⭐ If you like the project, consider giving it a star!
+ If you like the project, consider giving it a star!

@@ -1,10 +1,10 @@
-# ChatBuddy v5 - Persistent Multi-Thread Chatbot using LangGraph & SQLite
+# ChatBuddy 🫂
 
 ## Overview
 
-**ChatBuddy v5** is the fifth iteration of my LangGraph learning journey. Starting from a basic chatbot, this version evolves into a **persistent multi-thread conversational assistant** capable of maintaining multiple chat sessions and restoring conversations even after the application restarts.
+ChatBuddy is a conversational AI assistant built using **LangGraph**, evolving step by step from a basic chatbot into a more capable, production-style application.
 
-The primary goal of this version was to understand how **LangGraph Persistence** works in real-world applications using **SQLite Checkpointers**.
+The project explores core LangGraph concepts including state management, persistence, streaming, multi-thread conversations, observability with LangSmith, and Tool Calling. Instead of building isolated demos, every new concept is integrated into the same application to better understand how real-world AI systems evolve over time.
 
 ---
 
@@ -18,8 +18,15 @@ The primary goal of this version was to understand how **LangGraph Persistence**
 - Dynamic chat titles
 - Streamlit-based chat interface
 - Thread management using LangGraph Thread IDs
-- LangSmith Tracing & Monitoring (Thread Specific)
-- Tool Calling (Internet Search, Calculator, Live Stock Price, Weather Information, Currency Conversion).
+- LangSmith Tracing & Monitoring
+- LangGraph Tool Calling
+- DuckDuckGo Internet Search
+- Calculator Tool
+- Live Weather Information
+- Live Stock Price Lookup
+- Currency Conversion
+- Tool execution status indicator in the UI
+- Clean streaming of only the final LLM response
 
 ---
 
@@ -32,17 +39,22 @@ The primary goal of this version was to understand how **LangGraph Persistence**
 - Qwen3-4B-Instruct
 - SQLite
 - Streamlit
+- LangSmith
+- DuckDuckGo Search
+- OpenWeather API
+- Alpha Vantage API
+- ExchangeRate API
 
 ---
 
 ## Project Structure
 
 ```text
-chatbot_v5/
+chatbuddy/
 │
-├── frontend.py          # Streamlit UI
-├── db_backend.py        # LangGraph workflow & SQLite persistence
-├── chatbot.db           # SQLite checkpoint database
+├── frontend.py          # Streamlit Frontend
+├── backend.py           # LangGraph Workflow
+├── chatbot.db           # SQLite Checkpoint Database
 ├── requirements.txt
 └── README.md
 ```
@@ -52,37 +64,52 @@ chatbot_v5/
 ## Architecture
 
 ```text
-                  User
-                    │
-                    ▼
-          Streamlit Frontend
-                    │
-                    ▼
-             LangGraph Graph
-                    │
-                    ▼
-               Chat Node
-                    │
-                    ▼
-        HuggingFace Qwen Model
-                    │
-                    ▼
-             Assistant Response
-                    │
-                    ▼
-      SQLite Checkpointer (Persistence)
-                    │
-                    ▼
-         Resume Conversation Anytime
+                           User
+                             │
+                             ▼
+                    Streamlit Frontend
+                             │
+                             ▼
+                      LangGraph Graph
+                             │
+                             ▼
+                       Chat Node (LLM)
+                             │
+                ┌────────────┴────────────┐
+                │                         │
+        Direct Response          Tool Required?
+                │                         │
+                │                        Yes
+                │                         │
+                ▼                         ▼
+           Final Response            Tool Node
+                                          │
+      ┌──────────────┬──────────────┬──────────────┬──────────────┬──────────────┐
+      ▼              ▼              ▼              ▼              ▼
+  DuckDuckGo     Calculator      Weather      Stock Price    Currency Converter
+      │              │              │              │              │
+      └──────────────┴──────────────┴──────────────┴──────────────┘
+                             │
+                             ▼
+                        Chat Node (LLM)
+                             │
+                             ▼
+                      Final AI Response
+                             │
+                             ▼
+                 SQLite Checkpointer
+                             │
+                             ▼
+                 Resume Conversation Anytime
 ```
 
 ---
 
-## Concepts Covered
+# Concepts Covered
 
-### 1. LangGraph StateGraph
+## 1. LangGraph StateGraph
 
-The chatbot is implemented using LangGraph's `StateGraph`, where the application state stores the entire conversation.
+ChatBuddy is built using LangGraph's `StateGraph`, where the application state stores the complete conversation.
 
 ```python
 class ChatState(TypedDict):
@@ -93,44 +120,28 @@ The `add_messages` reducer automatically appends new messages to the conversatio
 
 ---
 
-### 2. SQLite Persistence
+## 2. SQLite Persistence
 
-Unlike previous versions that used `InMemorySaver`, this version uses `SqliteSaver`.
+ChatBuddy uses `SqliteSaver` to persist every conversation checkpoint.
 
 ```python
-conn = sqlite3.connect(
-    database="chatbot.db",
-    check_same_thread=False
-)
-
 checkPointer = SqliteSaver(conn)
 ```
 
 Benefits:
 
-- Conversations survive application restarts.
-- Checkpoints are stored permanently.
-- No loss of chat history.
+- Persistent conversations
+- Resume after restart
+- Automatic checkpoint management
+- Production-style state persistence
 
 ---
 
-### 3. Thread-Based Conversations
+## 3. Thread-Based Conversations
 
-Every conversation receives its own unique thread ID.
+Each conversation is assigned a unique LangGraph Thread ID.
 
-```text
-Thread A
- ├── User
- ├── AI
- ├── User
- └── AI
-
-Thread B
- ├── User
- ├── AI
-```
-
-LangGraph restores the correct conversation automatically using:
+Using the thread ID, LangGraph automatically restores the correct conversation state.
 
 ```python
 config = {
@@ -142,49 +153,86 @@ config = {
 
 ---
 
-### 4. Resume Chat
+## 4. Streaming Responses
 
-Users can reopen previous conversations directly from the sidebar.
-
-The application restores the latest checkpoint using:
-
-```python
-chatBot.get_state(config)
-```
-
-instead of manually storing every conversation.
-
----
-
-### 5. Streaming Responses
-
-Instead of waiting for the complete response, the chatbot streams tokens in real time.
+Responses are streamed token by token using LangGraph's streaming API.
 
 ```python
 chatBot.stream(...)
 ```
 
-This creates a smoother experience similar to modern AI chat applications.
+This provides a smoother, real-time chat experience.
 
 ---
 
-### 6. Automatic Thread Retrieval
+## 5. LangGraph Tool Calling
 
-Existing conversations are discovered directly from the SQLite checkpoint database.
+ChatBuddy uses LangGraph's `ToolNode` together with conditional routing to decide whether a user query should invoke a tool or be answered directly by the LLM.
 
 ```python
-def retrieveAllThreads():
-    allThreads = set()
-
-    for checkpoint in checkPointer.list(None):
-        allThreads.add(
-            checkpoint.config["configurable"]["thread_id"]
-        )
-
-    return list(allThreads)
+graph.add_conditional_edges(
+    "chatNode",
+    tools_condition
+)
 ```
 
-This allows all previous chats to appear automatically after restarting the application.
+The model is connected to available tools using:
+
+```python
+model.bind_tools(tools)
+```
+
+Current tools include:
+
+- DuckDuckGo Search
+- Calculator
+- Weather Information
+- Stock Price Lookup
+- Currency Converter
+
+---
+
+## 6. Conditional Graph Routing
+
+Instead of following a fixed workflow, the graph dynamically decides the execution path.
+
+```
+User Question
+      │
+      ▼
+  Chat Node
+      │
+      ├── Normal Question
+      │        │
+      │        ▼
+      │   Final Response
+      │
+      └── Tool Required
+               │
+               ▼
+          Tool Node
+               │
+               ▼
+          Chat Node
+               │
+               ▼
+        Final Response
+```
+
+---
+
+## 7. LangSmith Observability
+
+LangSmith is integrated to trace every conversation and visualize:
+
+- LLM calls
+- Tool execution
+- Latency
+- Tokens
+- Execution flow
+- Thread-specific traces
+
+This makes debugging and monitoring significantly easier.
 
 ---
 
@@ -192,9 +240,9 @@ This allows all previous chats to appear automatically after restarting the appl
 
 ### Version 2
 
-- Built the first LangGraph chatbot.
-- Introduced `InMemorySaver`.
-- Learned thread-based conversation memory.
+- Basic LangGraph chatbot
+- InMemorySaver
+- Conversation memory
 
 ---
 
@@ -202,9 +250,8 @@ This allows all previous chats to appear automatically after restarting the appl
 
 Added:
 
-- Streaming responses.
-- Generator-based output.
-- Better user experience with real-time token generation.
+- Streaming responses
+- Generator-based output
 
 ---
 
@@ -212,11 +259,10 @@ Added:
 
 Added:
 
-- Multiple conversations.
-- Resume chat.
-- Dynamic thread IDs.
-- Conversation history.
-- Automatic chat titles.
+- Multi-thread conversations
+- Resume chat
+- Dynamic chat titles
+- Conversation history
 
 ---
 
@@ -224,60 +270,82 @@ Added:
 
 Added:
 
-- SQLite Checkpointer.
-- Persistent conversations.
-- Resume chat after application restart.
-- Automatic retrieval of existing conversation threads.
-- Production-style conversation management.
+- SQLite Checkpointer
+- Persistent conversations
+- Automatic thread retrieval
+
+---
+
+### Version 6
+
+Added:
+
+- LangSmith integration
+- End-to-end tracing
+- Thread-specific monitoring
+- Better debugging and observability
+
+---
+
+### Version 7
+
+Added:
+
+- LangGraph Tool Calling
+- ToolNode
+- Conditional graph routing
+- DuckDuckGo Search
+- Calculator
+- Weather Tool
+- Stock Price Tool
+- Currency Converter
+- Tool execution status indicator
+- Streaming only the final AI response
 
 ---
 
 ## What I Learned
 
-This project helped me gain practical experience with:
+Building ChatBuddy helped me gain hands-on experience with:
 
 - LangGraph StateGraph
 - Messages State
 - Reducers (`add_messages`)
-- Checkpointers
 - Thread IDs
-- Persistence
-- SQLite Checkpointer
+- Checkpointers
+- SQLite Persistence
 - Streaming
-- Resume Chat
-- Multi-thread conversation management
+- Multi-thread conversations
+- LangSmith Observability
+- Tool Calling
+- Conditional Routing
+- ToolNode
 - Streamlit Session State
+- Building a stateful AI application incrementally
 
 ---
 
 ## Future Improvements
 
-- AI-generated conversation titles
-- Rename/Delete chats
-- User authentication
-- PostgreSQL Checkpointer
-- Tool Calling
-- LangGraph Agents
-- RAG Integration
-- Human-in-the-Loop
 - Model Context Protocol (MCP)
+- LangGraph Agents
+- Human-in-the-Loop Workflows
+- Multi-Agent Systems
+- User Authentication
+- Rename/Delete Chats
+- PostgreSQL Checkpointer
+- Docker Deployment
+- Cloud Deployment
 
 ---
 
 ## Key Takeaways
 
-Building this project helped me understand that **LangGraph Persistence** is much more than simply storing chat history.
+Rather than building separate demos for each LangGraph concept, I chose to evolve a single application across multiple versions.
 
-It enables:
+Each version introduced one new capability—from conversation memory and persistence to observability and Tool Calling—making it easier to understand how these concepts fit together when building real-world AI applications.
 
-- Stateful AI applications
-- Resume chat functionality
-- Multiple concurrent conversations
-- Fault tolerance
-- Checkpoint management
-- Production-ready conversational systems
-
-Rather than building everything at once, I evolved the chatbot across multiple versions, with each version introducing a new LangGraph capability. This incremental approach made it much easier to understand not only **how** these features work, but also **why** they matter when designing real-world AI applications.
+The project continues to evolve, with **Model Context Protocol (MCP)** being the next major addition.
 
 ---
 
@@ -285,4 +353,4 @@ Rather than building everything at once, I evolved the chatbot across multiple v
 
 If you found this project useful, feel free to explore the repository and share your feedback.
 
- If you like the project, consider giving it a star!
+⭐ If you like the project, consider giving it a star!

@@ -1,6 +1,3 @@
-import os
-os.environ["LANGSMITH_PROJECT"] = "ChatBuddy With Intergration of Tools"
-
 import streamlit as st
 from backend import chatBot, retrieveAllThreads
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage

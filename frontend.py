@@ -1,7 +1,11 @@
+import os
+os.environ["LANGSMITH_PROJECT"] = "ChatBuddy With Intergration of Tools"
+
 import streamlit as st
-from db_backend import chatBot, retrieveAllThreads
-from langchain_core.messages import HumanMessage
+from backend import chatBot, retrieveAllThreads
+from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 import uuid
+
 
 # Utility Functions
 
@@ -37,12 +41,12 @@ def loadConversation(thread_id):
 
 # Page Config
 st.set_page_config(
-    page_title="ChatBuddy",
+    page_title="ChatBuddy 🫂",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-st.title("ChatBuddy")
+st.title("ChatBuddy 🫂")
 
 # Session State Setup
 if "messageHistory" not in st.session_state:
@@ -113,16 +117,30 @@ if user_input:
     config = {"configurable": {"thread_id": st.session_state["thread_id"]}}
     # Assistant Response
     with st.chat_message("assistant"):
-        chatBotReply = st.write_stream(
-            message_chunk.content
+        status_holder = {"box": None}
+        def streamOnlyAIMessage():
             for message_chunk, metadata in chatBot.stream(
-                {
-                    "messages": [
-                        HumanMessage(content=user_input)
-                    ]
-                },
-                config=config,
-                stream_mode="messages"
+                {"messages": [HumanMessage(content = user_input)]},
+                config = config,
+                stream_mode = "messages"
+            ):
+                if isinstance(message_chunk, ToolMessage):
+                    toolName = getattr(message_chunk, "name", "tool")
+                    if status_holder["box"] is None:
+                        status_holder["box"] = st.status(
+                            f"Using `{toolName}` ...", expanded = True
+                        )
+                    else:
+                        status_holder["box"].update(
+                            label = f"Using `{toolName}` ...", 
+                            state = "running", 
+                            expanded = True,
+                        )
+                if isinstance(message_chunk, AIMessage):
+                    yield message_chunk.content # Yield only ChatBuddy's Tokens
+        chatBotReply = st.write_stream(streamOnlyAIMessage())
+        if status_holder["box"] is not None:
+            status_holder["box"].update(
+                label = "Tool Finished", state = "complete", expanded = False
             )
-        )
     st.session_state["messageHistory"].append({"role": "assistant","content": chatBotReply})

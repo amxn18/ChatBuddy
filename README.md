@@ -19,6 +19,7 @@ The primary goal of this version was to understand how **LangGraph Persistence**
 - Streamlit-based chat interface
 - Thread management using LangGraph Thread IDs
 - LangSmith Tracing & Monitoring (Thread Specific)
+- Tool Calling (Internet Search, Calculator, Live Stock Price, Weather Information, Currency Conversion).
 
 ---
 

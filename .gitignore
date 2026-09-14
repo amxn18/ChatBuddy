@@ -19,3 +19,5 @@ __pycache__/
 
 frontend.py
 backend.py
+
+rag_uploads/

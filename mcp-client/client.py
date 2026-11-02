@@ -36,22 +36,11 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 import sys
 
-FASTMCP_BIN = Path(sys.executable).parent / (
-    "fastmcp.exe" if os.name == "nt" else "fastmcp"
-)
-
-if not FASTMCP_BIN.exists():
-    FASTMCP_BIN = shutil.which("fastmcp") or "fastmcp"
-
-
 def server_config(server_file: str) -> dict:
     return {
         "transport": "stdio",
-        "command": str(FASTMCP_BIN),
-        "args": [
-            "run",
-            str(MCP_SERVER_DIR / server_file),
-        ],
+        "command": sys.executable,
+        "args": [str(MCP_SERVER_DIR / server_file)],
         "cwd": str(MCP_SERVER_DIR),
         "env": dict(os.environ),
     }

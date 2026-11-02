@@ -183,3 +183,6 @@ def remove_knowledge_base(knowledge_base_id: str) -> str:
 
     except Exception as e:
         return f"Failed to remove knowledge base: {str(e)}"
+
+if __name__ == "__main__":
+    mcp.run()

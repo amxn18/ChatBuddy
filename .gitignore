@@ -21,3 +21,5 @@ frontend.py
 backend.py
 
 rag_uploads/
+mcp-client/pyproject.toml
+mcp-client/uv.lock

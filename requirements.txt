@@ -14,3 +14,4 @@ pypdf==6.18.1
 psycopg[binary]==3.3.5
 ddgs==9.16.0
 requests==2.34.2
+langchain-groq

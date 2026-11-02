@@ -14,6 +14,8 @@ from langchain_core.tools import tool
 from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
 from langchain_mcp_adapters.client import MultiServerMCPClient
 
+from langchain_groq import ChatGroq
+
 
 load_dotenv()
 
@@ -706,12 +708,16 @@ async def process_message(
     # Model
     # --------------------------------------------------------
 
-    llm = HuggingFaceEndpoint(
-        repo_id="deepseek-ai/DeepSeek-V4.1-Flash-1017",
-        task="text-generation",
+    model = ChatGroq(
+        model="llama-3.3-70b-versatile",
+        temperature=0,
     )
+    # llm = HuggingFaceEndpoint(
+    #     repo_id="deepseek-ai/DeepSeek-V4.1-Flash-1017",
+    #     task="text-generation",
+    # )
 
-    model = ChatHuggingFace(llm=llm)
+    # model = ChatHuggingFace(llm=llm)
 
     model_with_tools = model.bind_tools(model_tools)
 

@@ -31,45 +31,25 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # ============================================================
-# UV
-# ============================================================
-
-UV_PATH = shutil.which("uv")
-
-if UV_PATH is None:
-    default_uv_path = (
-        Path.home()
-        / "AppData"
-        / "Local"
-        / "Programs"
-        / "Python"
-        / "Python311"
-        / "Scripts"
-        / "uv.exe"
-    )
-
-    if default_uv_path.exists():
-        UV_PATH = str(default_uv_path)
-    else:
-        UV_PATH = "uv"
-
-
-# ============================================================
 # MCP Servers
 # ============================================================
+
+import sys
 
 def server_config(server_file: str) -> dict:
     return {
         "transport": "stdio",
-        "command": UV_PATH,
+        "command": sys.executable,
         "args": [
-            "run",
-            "--directory",
-            str(MCP_SERVER_DIR),
+            "-m",
             "fastmcp",
             "run",
-            server_file,
+            str(MCP_SERVER_DIR / server_file),
         ],
+        "cwd": str(MCP_SERVER_DIR),
+        # Pass API keys / DB settings (from .env locally,
+        # from Streamlit secrets in the cloud) to each server.
+        "env": dict(os.environ),
     }
 
 

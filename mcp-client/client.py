@@ -709,8 +709,8 @@ async def process_message(
     # --------------------------------------------------------
 
     model = ChatGroq(
-        model="llama-3.3-70b-versatile",
-        temperature=0,
+        model=os.getenv("GROQ_MODEL", "openai/gpt-oss-20b"),
+        temperature=0.3,
     )
     # llm = HuggingFaceEndpoint(
     #     repo_id="deepseek-ai/DeepSeek-V4.1-Flash-1017",

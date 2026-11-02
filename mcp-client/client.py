@@ -707,7 +707,7 @@ async def process_message(
     # --------------------------------------------------------
 
     llm = HuggingFaceEndpoint(
-        repo_id="Qwen/Qwen3-4B-Instruct-2507",
+        repo_id="deepseek-ai/DeepSeek-V4.1-Flash-1017",
         task="text-generation",
     )
 
